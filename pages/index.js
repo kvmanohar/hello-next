@@ -1,54 +1,43 @@
-import Layout from '../components/MyLayout';
-import Link from 'next/link';
-import fetch from 'isomorphic-unfetch';
+import useSWR from 'swr';
 
-const Index = (props) => (
-	<Layout>
-		<h1>Batman TV Shows</h1>
-		<ul>
-			{props.shows.map((show) => (
-				<li key={show.id}>
-					<Link href="/p/[id]" as={`/p/${show.id}`}>
-						<a>{show.name}</a>
-					</Link>
-				</li>
-			))}
-		</ul>
-		<style jsx>
-			{`
-				h1,
-				a {
-					font-family: 'Arial';
+function fetcher(url) {
+	return fetch(url).then((r) => r.json());
+}
+
+export default function Index() {
+	const { data, error } = useSWR('/api/randomQuote', fetcher);
+	// The following line has optional chaining, added in Next.js v9.1.5,
+	// is the same as `data && data.author`
+	const author = data?.author;
+	let quote = data?.quote;
+
+	if (!data) quote = 'Loading...';
+	if (error) quote = 'Failed to fetch the quote.';
+
+	return (
+		<main className="center">
+			<div className="quote">{quote}</div>
+			{author && <span className="author">- {author}</span>}
+
+			<style jsx>{`
+				main {
+					width: 90%;
+					max-width: 900px;
+					margin: 300px auto;
+					text-align: center;
 				}
-				ul {
-					padding: 0;
+				.quote {
+					font-family: cursive;
+					color: #e243de;
+					font-size: 24px;
+					padding-bottom: 10px;
 				}
-				li {
-					list-style: none;
-					margin: 5px 0;
+				.author {
+					font-family: sans-serif;
+					color: #559834;
+					font-size: 20px;
 				}
-
-				a {
-					text-decoration: none;
-					color: blue;
-				}
-
-				a:hover {
-					opacity: 0.6;
-				}
-			`}
-		</style>
-	</Layout>
-);
-
-Index.getInitialProps = async function() {
-	const res = await fetch('https://api.tvmaze.com/search/shows?q=batman');
-	const data = await res.json();
-	console.log(`Show data fetched. Count: ${data.length}`);
-
-	return {
-		shows: data.map((entry) => entry.show)
-	};
-};
-
-export default Index;
+			`}</style>
+		</main>
+	);
+}
